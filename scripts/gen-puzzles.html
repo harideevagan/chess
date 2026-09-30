@@ -1,0 +1,73 @@
+<!doctype html><meta charset="utf-8"><title>gen</title>
+<script type="module">
+import { Engine } from '/src/chess/engine.js';
+import { Chess } from 'chess.js';
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const e = new Engine();
+async function analyze(fen, depth=12) {
+  const lines = {};
+  const r = await e.search({ fen, go: `depth ${depth}`, multipv: 2, onInfo: i => { if (i.depth>=1) lines[i.multipv] = i; } });
+  return lines;
+}
+window.gen = async (quota, maxMs, seed) => {
+  await e.init();
+  const R = rng(seed);
+  const out = { mate1: [], mate2: [], mate3: [], best: [], tactical: [] };
+  const seen = new Set();
+  const t0 = Date.now(); let scanned = 0;
+  const full = () => Object.entries(quota).every(([k, n]) => out[k].length >= n);
+  while (!full() && Date.now() - t0 < maxMs) {
+    const c = new Chess();
+    const opening = 4 + Math.floor(R() * 6);
+    for (let i = 0; i < opening; i++) { const m = c.moves(); c.move(m[Math.floor(R()*m.length)]); }
+    for (let ply = opening; ply < 70 && !c.isGameOver() && !full() && Date.now()-t0<maxMs; ply++) {
+      const fen = c.fen();
+      const key = fen.split(' ').slice(0,2).join(' ');
+      if (ply >= 8 && !seen.has(key) && c.moves().length > 1) {
+        seen.add(key); scanned++;
+        const L = await analyze(fen);
+        const a = L[1], b = L[2];
+        if (a && a.pv) {
+          const turnW = c.turn() === 'w';
+          let kind = null;
+          if (a.mate > 0 && a.mate <= 3) {
+            const bm = b && b.mate > 0 && b.mate <= a.mate;
+            if (!bm) kind = 'mate' + a.mate;
+          } else if (a.cp !== undefined && a.cp >= 300 && b && b.cp !== undefined && b.cp <= 80 && a.pv.length >= 1) {
+            kind = 'best';
+          }
+          if (kind && out[kind].length < quota[kind]) {
+            let sol = kind.startsWith('mate') ? a.pv.slice(0, 2 * a.mate - 1) : [a.pv[0]];
+            let k2 = kind;
+            // tactical upgrade: verify a second unique player move
+            if (kind === 'best' && a.pv.length >= 3 && out.tactical.length < quota.tactical) {
+              const t = new Chess(fen);
+              try {
+                t.move({from:a.pv[0].slice(0,2),to:a.pv[0].slice(2,4),promotion:a.pv[0][4]});
+                t.move({from:a.pv[1].slice(0,2),to:a.pv[1].slice(2,4),promotion:a.pv[1][4]});
+                if (!t.isGameOver()) {
+                  const L2 = await analyze(t.fen());
+                  const a2 = L2[1], b2 = L2[2];
+                  if (a2 && a2.pv && a2.cp !== undefined && a2.cp >= 300 && (!b2 || (b2.cp !== undefined && b2.cp <= a2.cp - 200)) && a2.pv[0] === a.pv[2]) {
+                    sol = a.pv.slice(0, 3); k2 = 'tactical';
+                  }
+                }
+              } catch (err) {}
+            }
+            // validate the solution with chess.js
+            const v = new Chess(fen); let ok = true;
+            for (const u of sol) { try { v.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]}); } catch (err) { ok = false; break; } }
+            if (ok && kind.startsWith('mate') && !v.isCheckmate()) ok = false;
+            if (ok && out[k2].length < quota[k2]) out[k2].push({ fen, solution: sol, turn: c.turn() });
+          }
+        }
+      }
+      // weak engine moves for both sides to provoke tactics
+      const r = await e.search({ fen: c.fen(), go: 'depth 2', skill: 0 });
+      if (!r || !r.bestmove) break;
+      try { c.move({from:r.bestmove.slice(0,2),to:r.bestmove.slice(2,4),promotion:r.bestmove[4]}); } catch (err) { break; }
+    }
+  }
+  return { out, scanned, ms: Date.now() - t0 };
+};
+</script>

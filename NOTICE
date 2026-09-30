@@ -1,0 +1,33 @@
+Rookery Chess – NOTICE
+======================
+
+This project bundles and uses the following third-party components.
+
+1. Stockfish.js 19 (engine)  ---  GNU General Public License v3.0
+   Files: public/stockfish/stockfish-19-lite-single.js
+          public/stockfish/stockfish-19-lite-single.wasm
+   Stockfish.js 19 (c) 2026, Chess.com, LLC
+   https://github.com/nmrugg/stockfish.js
+   Based on Stockfish (c) T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other contributors.
+   https://github.com/official-stockfish/Stockfish
+   Nets by Chris Bao (sscg13): https://tests.stockfishchess.org/nns?network_name=nn-61e7af4bb97d
+   The files are included unmodified. The copyright header inside the .js file must be kept.
+   Corresponding source code: the repositories listed above (Stockfish.js and Stockfish).
+
+2. chess.js  ---  BSD 2-Clause License
+   Copyright (c) 2025, Jeff Hlywa (jhlywa@gmail.com)
+   https://github.com/jhlywa/chess.js
+   Redistribution and use in source and binary forms, with or without modification, are permitted
+   provided that the copyright notice, this list of conditions and the following disclaimer are
+   retained. THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+3. Rookery Chess application code (src/, index.html, styles, chess piece artwork)
+   Copyright (c) 2026 the Rookery Chess authors.
+   Distributed under the GNU General Public License v3.0 or (at your option) any later version,
+   because it is combined with and distributed together with GPLv3 Stockfish.js. The full source
+   code of this application is available in the repository it is deployed from (the same
+   repository contains this NOTICE file). Anyone receiving the application may obtain, modify and
+   redistribute that source under the terms of the GPL.
+
+The complete text of the GNU General Public License v3 is in LICENSE.txt (also served at /LICENSE.txt).
+The chess piece drawings and UI design are original and not taken from any commercial chess site.
