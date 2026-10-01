@@ -107,38 +107,37 @@ export const PIECE_STYLES = { classic: 'Classic', flat: 'Flat', gold: 'Gold & eb
 
 export function renderSettings(root, settings, onChange) {
   const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}"${String(k) === String(cur) ? ' selected' : ''}>${v}</option>`).join('');
-  const sel = (k, label, obj) => `<label class="field">${label}<select data-k="${k}">${opt(obj, settings[k])}</select></label>`;
-  const chk = (k, label) => `<label class="check"><input type="checkbox" data-k="${k}"${settings[k] ? ' checked' : ''}/> ${label}</label>`;
+  const sel = (k, label, obj) => `<label class="setrow"><span>${label}</span><select data-k="${k}">${opt(obj, settings[k])}</select></label>`;
+  const chk = (k, label) => `<label class="setrow"><span>${label}</span><input type="checkbox" data-k="${k}"${settings[k] ? ' checked' : ''}/></label>`;
   root.innerHTML = `
-    <div class="card set-sec"><h3>Appearance</h3>
+    <section class="set-sec"><h3>Appearance</h3>
       ${sel('theme', 'Theme', { auto: 'Match device', light: 'Light', dark: 'Dark' })}
-    </div>
-    <div class="card set-sec"><h3>Board</h3>
-      <div class="row2">${sel('board', 'Board colours', BOARD_THEMES)}${sel('pieces', 'Piece style', PIECE_STYLES)}</div>
+    </section>
+    <section class="set-sec"><h3>Board</h3>
+      ${sel('board', 'Board colours', BOARD_THEMES)}
+      ${sel('pieces', 'Piece style', PIECE_STYLES)}
       ${chk('legal', 'Show legal moves')}
       ${chk('coords', 'Show board coordinates')}
       ${chk('anim', 'Animate piece movement')}
-    </div>
-    <div class="card set-sec"><h3>Gameplay</h3>
+    </section>
+    <section class="set-sec"><h3>Gameplay</h3>
       ${chk('autoQueen', 'Always promote to a queen')}
       ${chk('autoFlip', 'Flip board every move (Player vs Player)')}
-    </div>
-    <div class="card set-sec"><h3>AI</h3>
-      <div class="row2">
-        ${sel('aiLevel', 'Difficulty', AI_LEVELS)}
-        ${sel('aiTime', 'Thinking time', AI_TIMES)}
-      </div>
+    </section>
+    <section class="set-sec"><h3>AI</h3>
+      ${sel('aiLevel', 'Difficulty', AI_LEVELS)}
+      ${sel('aiTime', 'Thinking time', AI_TIMES)}
       ${sel('aiDepth', 'Search depth', AI_DEPTHS)}
       ${chk('evalBar', 'Show evaluation')}
-    </div>
-    <div class="card set-sec"><h3>About</h3>
-      <p>Rookery Chess, built by Harideevagan M (Hari Deevagan).</p>
+    </section>
+    <section class="set-sec"><h3>About</h3>
+      <p class="about-line">Rookery Chess, built by Harideevagan M (Hari Deevagan).</p>
       <div class="btn-row">
         <a class="btn" href="https://harideevagan.netlify.app" target="_blank" rel="noopener">Portfolio</a>
         <a class="btn" href="https://www.linkedin.com/in/harideevagan-m" target="_blank" rel="noopener">LinkedIn</a>
         <a class="btn" href="/NOTICE.txt" target="_blank" rel="noopener">Licenses</a>
       </div>
-    </div>`;
+    </section>`;
   $$('[data-k]', root).forEach((el) => el.addEventListener('change', () => {
     settings[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
     onChange(el.dataset.k);

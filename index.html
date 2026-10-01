@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#12151c" />
+  <meta name="theme-color" content="#161513" />
   <title>Rookery Chess - Play chess online free | Hari Deevagan</title>
   <meta name="description" content="Rookery Chess - play chess online for free against the AI or a friend, with analysis, puzzles, clocks, FEN and PGN. Runs in your browser, no account needed. Built by Hari Deevagan (Harideevagan M), Full-Stack Developer &amp; AI Engineer, Chennai." />
   <meta name="author" content="Harideevagan M" />
@@ -38,14 +38,12 @@
   <a class="skip" href="#main">Skip to content</a>
   <header class="topbar">
     <button class="brand" id="brand-home" aria-label="Rookery Chess home">
-      <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><path d="M16 50h32v-6H16zM19 44l2-22h22l2 22zM16 22V10h6v5h5v-5h10v5h5v-5h6v12z" fill="var(--bg)"/></svg>
-      <span class="brand-name">Rookery</span><span class="brand-sub">Chess</span>
+      <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true"><rect width="64" height="64" rx="10" fill="var(--accent)"/><path d="M16 50h32v-6H16zM19 44l2-22h22l2 22zM16 22V10h6v5h5v-5h10v5h5v-5h6v12z" fill="var(--bg)"/></svg>
+      <span class="brand-name">Rookery Chess</span>
     </button>
     <div class="top-actions">
-      <span id="engine-chip" class="chip" role="status" aria-live="polite">AI loading…</span>
-      <button class="icon-btn" id="btn-theme" aria-label="Switch light / dark theme" title="Theme">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      </button>
+      <span id="engine-chip" class="chip" role="status" aria-live="polite">AI loading...</span>
+      <button class="icon-btn" id="btn-theme" aria-label="Switch light / dark theme" title="Switch light / dark theme"><span data-icon="sun"></span></button>
     </div>
   </header>
 
@@ -54,25 +52,27 @@
 
   <main id="main" class="main" tabindex="-1">
     <!-- HOME -->
-    <section class="screen" id="screen-home" data-v="home" aria-label="Home">
-      <div class="hero">
-        <h1>Play chess. <span>Get better.</span></h1>
-        <p class="muted">Free, private and instant. Play the AI or a friend, solve puzzles and analyse your games.</p>
-        <div class="hero-actions">
-          <button class="btn primary big" id="home-quick">Quick play vs AI</button>
-          <button class="btn big" id="home-new">New game…</button>
-        </div>
+    <section class="screen narrow" id="screen-home" data-v="home" aria-label="Home">
+      <h1 class="home-title"><svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true"><rect width="64" height="64" rx="10" fill="var(--accent)"/><path d="M16 50h32v-6H16zM19 44l2-22h22l2 22zM16 22V10h6v5h5v-5h10v5h5v-5h6v12z" fill="var(--bg)"/></svg>Rookery Chess</h1>
+      <p class="lede">Play the computer or a friend, solve puzzles and analyse your games. Free, and nothing leaves your browser.</p>
+      <div class="home-actions">
+        <button class="btn primary" id="home-quick">Play</button>
+        <button class="btn" id="home-new">Custom game</button>
       </div>
-      <button class="card resume" id="home-resume" hidden>
-        <span class="resume-title">Continue your game</span>
-        <span class="resume-sub" id="home-resume-sub"></span>
+      <button class="row resume" id="home-resume" hidden>
+        <span class="row-t"><b>Continue your game</b><small id="home-resume-sub"></small></span><span data-icon="chevron" class="chev"></span>
       </button>
-      <div class="tiles">
-        <button class="tile" data-go="puzzles"><span class="tile-ic" aria-hidden="true">🧩</span><b>Puzzles</b><small>Mate in 1, 2, 3 and tactics</small></button>
-        <button class="tile" data-go="analysis"><span class="tile-ic" aria-hidden="true">📈</span><b>Analysis</b><small>Best moves and evaluation graph</small></button>
-        <button class="tile" data-go="io"><span class="tile-ic" aria-hidden="true">📋</span><b>FEN / PGN</b><small>Import or export a game</small></button>
-        <button class="tile" data-go="settings"><span class="tile-ic" aria-hidden="true">⚙️</span><b>Settings</b><small>Themes, board and AI</small></button>
+      <div class="list">
+        <button class="row" data-go="puzzles"><span data-icon="puzzle" class="row-ic"></span><span class="row-t"><b>Puzzles</b></span><span data-icon="chevron" class="chev"></span></button>
+        <button class="row" data-go="analysis"><span data-icon="chart" class="row-ic"></span><span class="row-t"><b>Analysis</b></span><span data-icon="chevron" class="chev"></span></button>
+        <button class="row" data-go="settings"><span data-icon="settings" class="row-ic"></span><span class="row-t"><b>Settings</b></span><span data-icon="chevron" class="chev"></span></button>
       </div>
+      <h2 class="sec-title">Recent games</h2>
+      <table class="recent" id="recent-games">
+        <thead><tr><th scope="col">Date</th><th scope="col">Opponent</th><th scope="col">Result</th></tr></thead>
+        <tbody id="recent-body"></tbody>
+      </table>
+      <p class="muted small" id="recent-empty">No finished games yet.</p>
     </section>
 
     <!-- NEW GAME -->
@@ -124,46 +124,48 @@
     <div class="layout" data-v="game analysis puzzles">
       <section class="board-col" aria-label="Chess board">
         <div class="board-stack">
-          <div class="status-strip">
-            <div id="status" class="status" role="status" aria-live="polite">Loading…</div>
-            <div class="strip-sub"><span id="game-info" class="game-info"></span><span id="engine-line" class="engine-line" aria-live="off">AI: –</span></div>
-          </div>
           <div class="player-bar" id="bar-top">
-            <span class="pname"></span><span class="captured"></span><span class="clock" id="clock-top" aria-live="off">–</span>
+            <span class="pname"></span><span class="captured"></span><span class="clock" id="clock-top" aria-live="off">-</span>
           </div>
           <div class="board-wrap">
             <div id="eval-bar" class="eval-bar" role="img" aria-label="Evaluation"></div>
             <div class="board-holder">
               <div id="board"></div>
-              <div id="thinking" class="thinking" hidden><span class="spinner" aria-hidden="true"></span> AI is thinking…</div>
+              <div id="thinking" class="thinking" hidden><span class="spinner" aria-hidden="true"></span> AI is thinking...</div>
             </div>
           </div>
           <div class="player-bar" id="bar-bottom">
-            <span class="pname"></span><span class="captured"></span><span class="clock" id="clock-bottom" aria-live="off">–</span>
+            <span class="pname"></span><span class="captured"></span><span class="clock" id="clock-bottom" aria-live="off">-</span>
           </div>
-          <div class="nav-row" role="group" aria-label="Move navigation">
-            <button class="btn" id="nav-first" aria-label="Jump to start" title="Jump to start (Home)">⏮</button>
-            <button class="btn" id="nav-prev" aria-label="Previous move" title="Previous move (←)">◀</button>
-            <button class="btn" id="nav-next" aria-label="Next move" title="Next move (→)">▶</button>
-            <button class="btn" id="nav-last" aria-label="Jump to end" title="Jump to end (End)">⏭</button>
-            <button class="btn" id="btn-flip" aria-label="Flip board" title="Flip board (F)">⇅ Flip</button>
+          <div class="toolbar nav-row" role="group" aria-label="Move navigation">
+            <button class="ibtn" id="nav-first" aria-label="Jump to start" title="Jump to start (Home)"><span data-icon="first"></span></button>
+            <button class="ibtn" id="nav-prev" aria-label="Previous move" title="Previous move (Left arrow)"><span data-icon="prev"></span></button>
+            <button class="ibtn" id="nav-next" aria-label="Next move" title="Next move (Right arrow)"><span data-icon="next"></span></button>
+            <button class="ibtn" id="nav-last" aria-label="Jump to end" title="Jump to end (End)"><span data-icon="last"></span></button>
+            <span class="tb-gap"></span>
+            <button class="ibtn" id="btn-flip" aria-label="Flip board" title="Flip board (F)"><span data-icon="flip"></span></button>
+          </div>
+          <div class="status-strip">
+            <div id="status" class="status" role="status" aria-live="polite">Loading...</div>
+            <div class="strip-sub"><span id="game-info" class="game-info"></span><span id="engine-line" class="engine-line" aria-live="off">AI: -</span></div>
           </div>
         </div>
       </section>
 
       <aside class="side-col">
-        <section class="card actions" data-v="game" aria-label="Game controls">
-          <button class="btn" id="btn-undo">↶ Undo</button>
-          <button class="btn" id="btn-redo">↷ Redo</button>
-          <button class="btn" id="btn-resign">Resign</button>
-          <button class="btn primary" id="btn-menu" aria-haspopup="dialog">⋯ More</button>
+        <section class="toolbar actions" data-v="game" aria-label="Game controls">
+          <button class="ibtn" id="btn-undo" aria-label="Undo" title="Undo"><span data-icon="undo"></span></button>
+          <button class="ibtn" id="btn-redo" aria-label="Redo" title="Redo"><span data-icon="redo"></span></button>
+          <button class="ibtn" id="btn-resign" aria-label="Resign" title="Resign"><span data-icon="flag"></span></button>
+          <span class="tb-gap"></span>
+          <button class="ibtn" id="btn-menu" aria-label="More game options" title="More" aria-haspopup="dialog"><span data-icon="dots"></span></button>
         </section>
 
-        <section class="card" data-v="game analysis" aria-label="Moves">
+        <section class="block" data-v="game analysis" aria-label="Moves">
           <div id="moves" class="moves" tabindex="0" aria-label="Move list"><span class="muted">No moves yet.</span></div>
         </section>
 
-        <section class="card panel" data-v="analysis" id="panel-analysis" aria-label="Analysis">
+<section class="block panel" data-v="analysis" id="panel-analysis" aria-label="Analysis">
           <div class="row2">
             <label class="field">Depth
               <select id="an-depth">
@@ -186,7 +188,7 @@
           <canvas id="eval-graph" class="eval-graph" height="90" aria-label="Evaluation graph. Click to jump to a move."></canvas>
         </section>
 
-        <section class="card panel" data-v="puzzles" id="panel-puzzles" aria-label="Puzzles">
+        <section class="block panel" data-v="puzzles" id="panel-puzzles" aria-label="Puzzles">
           <div class="row2">
             <label class="field">Category
               <select id="pz-cat">
@@ -213,18 +215,18 @@
             <button class="btn" id="pz-load">Load puzzle</button>
           </details>
         </section>
-      </aside>
+            </aside>
     </div>
 
     <!-- MORE -->
     <section class="screen narrow" id="screen-more" data-v="more" hidden aria-label="More">
       <h2 class="screen-title">More</h2>
-      <div class="card list">
-        <button class="row" data-go="settings"><span class="row-ic" aria-hidden="true">⚙️</span><span class="row-t"><b>Settings</b><small>Theme, board, gameplay and AI</small></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="row" data-go="io"><span class="row-ic" aria-hidden="true">📋</span><span class="row-t"><b>FEN / PGN</b><small>Import, export and copy positions and games</small></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="row" data-go="new"><span class="row-ic" aria-hidden="true">♟️</span><span class="row-t"><b>New game</b><small>Choose mode, difficulty and clock</small></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="row" data-go="about"><span class="row-ic" aria-hidden="true">ℹ️</span><span class="row-t"><b>About</b><small>Rookery Chess and its author</small></span><span class="chev" aria-hidden="true">›</span></button>
-        <a class="row" href="/NOTICE.txt" target="_blank" rel="noopener"><span class="row-ic" aria-hidden="true">📄</span><span class="row-t"><b>Licenses</b><small>Open-source notices</small></span><span class="chev" aria-hidden="true">›</span></a>
+      <div class="list">
+        <button class="row" data-go="settings"><span data-icon="settings" class="row-ic"></span><span class="row-t"><b>Settings</b><small>Theme, board, gameplay and AI</small></span><span data-icon="chevron" class="chev"></span></button>
+        <button class="row" data-go="io"><span data-icon="file" class="row-ic"></span><span class="row-t"><b>FEN / PGN</b><small>Import, export and copy positions and games</small></span><span data-icon="chevron" class="chev"></span></button>
+        <button class="row" data-go="new"><span data-icon="plus" class="row-ic"></span><span class="row-t"><b>New game</b><small>Choose mode, difficulty and clock</small></span><span data-icon="chevron" class="chev"></span></button>
+        <button class="row" data-go="about"><span data-icon="info" class="row-ic"></span><span class="row-t"><b>About</b><small>Rookery Chess and its author</small></span><span data-icon="chevron" class="chev"></span></button>
+        <a class="row" href="/NOTICE.txt" target="_blank" rel="noopener"><span data-icon="file" class="row-ic"></span><span class="row-t"><b>Licenses</b><small>Open-source notices</small></span><span data-icon="chevron" class="chev"></span></a>
       </div>
     </section>
 
@@ -234,10 +236,10 @@
       <div id="settings-body"></div>
     </section>
 
-    <!-- FEN / PGN -->
+<!-- FEN / PGN -->
     <section class="screen narrow" id="screen-io" data-v="io" hidden aria-label="FEN and PGN">
       <h2 class="screen-title">FEN / PGN</h2>
-      <div class="card panel" id="panel-io">
+      <div class="panel" id="panel-io">
         <label class="field">FEN
           <input type="text" id="io-fen" spellcheck="false" autocomplete="off" />
         </label>
@@ -262,7 +264,7 @@
     <!-- ABOUT -->
     <section class="screen narrow" id="screen-about" data-v="about" hidden aria-label="About">
       <h2 class="screen-title">About</h2>
-      <div class="card about">
+      <div class="about">
         <h3>Rookery Chess</h3>
         <p class="muted">A free chess game that runs entirely in your browser. No account, no tracking, and no positions are sent to any server.</p>
         <p>Built by <strong>Harideevagan M</strong> (Hari Deevagan), Full-Stack Developer &amp; AI Engineer, Chennai.</p>
@@ -281,11 +283,11 @@
   </footer>
 
   <nav class="bottom-nav" aria-label="Main">
-    <button data-go="home" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg><span>Home</span></button>
-    <button data-go="game" aria-label="Play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21h14M7 21l1-8-2-2 3-1-1-4 3-3 3 3-1 4 3 1-2 2 1 8"/></svg><span>Play</span></button>
-    <button data-go="analysis" aria-label="Analysis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Analysis</span></button>
-    <button data-go="puzzles" aria-label="Puzzles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h4v3a2 2 0 1 0 4 0V3h3v6h-3a2 2 0 1 0 0 4h3v8H4v-8h3a2 2 0 1 1 0-4H4V3z"/></svg><span>Puzzles</span></button>
-    <button data-go="more" aria-label="More"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
+    <button data-go="home" aria-label="Home"><span data-icon="home"></span><span>Home</span></button>
+    <button data-go="game" aria-label="Play"><span data-icon="board"></span><span>Play</span></button>
+    <button data-go="analysis" aria-label="Analysis"><span data-icon="chart"></span><span>Analysis</span></button>
+    <button data-go="puzzles" aria-label="Puzzles"><span data-icon="puzzle"></span><span>Puzzles</span></button>
+    <button data-go="more" aria-label="More"><span data-icon="dots"></span><span>More</span></button>
   </nav>
 
   <!-- Game menu bottom sheet -->
@@ -295,12 +297,12 @@
       <div class="sheet-grip" aria-hidden="true"></div>
       <h2>Game menu</h2>
       <div class="sheet-list">
-        <button class="btn" id="btn-new">New game</button>
-        <button class="btn" id="btn-restart">Restart</button>
-        <button class="btn" id="btn-draw">Offer draw</button>
-        <button class="btn" id="btn-pause" hidden>Pause</button>
-        <button class="btn" id="btn-sheet-io">FEN / PGN</button>
-        <button class="btn" id="btn-sheet-settings">Settings</button>
+        <button class="btn" id="btn-new"><span data-icon="plus"></span>New game</button>
+        <button class="btn" id="btn-restart"><span data-icon="restart"></span>Restart</button>
+        <button class="btn" id="btn-draw"><span data-icon="draw"></span>Offer draw</button>
+        <button class="btn" id="btn-pause" hidden><span data-icon="pause"></span><span id="pause-label">Pause</span></button>
+        <button class="btn" id="btn-sheet-io"><span data-icon="file"></span>FEN / PGN</button>
+        <button class="btn" id="btn-sheet-settings"><span data-icon="settings"></span>Settings</button>
       </div>
       <button class="btn wide" data-close>Close</button>
     </div>

@@ -6,6 +6,7 @@ import { pieceSVG } from './chess/pieces.js';
 import { PUZZLES } from './chess/puzzles-data.js';
 import { Clock, fmtTime } from './ui/clock.js';
 import { EvalBar, EvalGraph, formatScore, toWhite, graphValue } from './ui/evaluation.js';
+import { icon, hydrateIcons } from './ui/icons.js';
 import { $, $$, store, toast, modal, promotionChoice, copyText, download, renderSettings, esc } from './ui/controls.js';
 
 /* ------------------------------------------------------------------ config */
@@ -90,7 +91,7 @@ function applySettings() {
   document.body.dataset.coords = settings.coords ? 'on' : 'off';
   document.body.dataset.evalbar = settings.evalBar ? 'on' : 'off';
   $('#board').dataset.anim = settings.anim ? 'on' : 'off';
-  $('meta[name="theme-color"]')?.setAttribute('content', dark ? '#12151c' : '#f2efe9');
+  $('meta[name="theme-color"]')?.setAttribute('content', dark ? '#161513' : '#f4f1ea');
   store('settings', settings);
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { if (settings.theme === 'auto') applySettings(); });
@@ -205,11 +206,11 @@ function renderStatus(g, fen, ply) {
   const chk = new Chess(fen).inCheck();
   let html;
   if (puzzleActive()) html = `<span class="dot ${S.pz.player}"></span> ${colorName(S.pz.player)} to move – puzzle`;
-  else if (st.over && S.view === null) html = `🏁 ${esc(resultText(st))}`;
-  else if (S.view !== null) html = `👁 Viewing move ${ply} of ${g.ply} – press ⏭ to return`;
+  else if (st.over && S.view === null) html = esc(resultText(st));
+  else if (S.view !== null) html = `Viewing move ${ply} of ${g.ply}. Use the jump-to-end button to return.`;
   else if (S.thinking) html = '<span class="spinner"></span> AI is thinking…';
   else if (S.mode !== 'pvp' && S.engineState === 'loading' && (S.mode === 'aivai' || turn !== S.human)) html = '<span class="spinner"></span> Loading AI…';
-  else if (S.paused) html = '⏸ Paused';
+  else if (S.paused) html = `${icon('pause', 'ic sm')} Paused`;
   else html = `<span class="dot ${turn}"></span> ${colorName(turn)} to move${chk ? ' – check!' : ''}`;
   el.innerHTML = html;
   $('#thinking').hidden = !S.thinking || puzzleActive();
@@ -228,7 +229,8 @@ function renderButtons(g) {
   $('#btn-draw').disabled = st.over || isAi || !live || S.thinking || puzzleActive();
   $('#btn-restart').disabled = puzzleActive();
   $('#btn-pause').hidden = S.mode !== 'aivai';
-  $('#btn-pause').textContent = S.paused ? 'Resume' : 'Pause';
+  $('#pause-label').textContent = S.paused ? 'Resume' : 'Pause';
+  $('#btn-pause .ic').outerHTML = icon(S.paused ? 'play' : 'pause');
   const pz = puzzleActive();
   $('#nav-first').disabled = $('#nav-prev').disabled = pz || viewPly() <= 0;
   $('#nav-next').disabled = $('#nav-last').disabled = pz || viewPly() >= g.ply;
@@ -279,6 +281,7 @@ function checkEnd() {
   if (!st.over) return false;
   clock.stop();
   cancelAI();
+  recordGame(g);
   if (!S.overShown) { S.overShown = true; setTimeout(() => { if (S.game === g && g.status().over) showResult(g.status()); }, 700); }
   refresh();
   return true;
@@ -297,16 +300,16 @@ function onFlag(color) {
 }
 
 function showResult(st) {
-  let head, icon;
-  if (S.mode === 'ai' && st.winner) { head = st.winner === S.human ? 'You won!' : 'You lost'; icon = st.winner === S.human ? '🏆' : '🤖'; }
-  else if (st.winner) { head = `${colorName(st.winner)} wins`; icon = '🏆'; }
-  else { head = 'Draw'; icon = '🤝'; }
+  let head, ic;
+  if (S.mode === 'ai' && st.winner) { head = st.winner === S.human ? 'You won' : 'You lost'; ic = st.winner === S.human ? 'trophy' : 'bot'; }
+  else if (st.winner) { head = `${colorName(st.winner)} wins`; ic = 'trophy'; }
+  else { head = 'Draw'; ic = 'draw'; }
   const g = S.game;
   const names = playerNames();
   modal({
     title: 'Game over',
     className: 'result-modal',
-    html: `<div class="result-big" aria-hidden="true">${icon}</div><div class="result-big result-head">${esc(head)}</div><div class="result-sub">${esc(st.reason)} · ${st.result}</div>
+    html: `<div class="result-ic">${icon(ic, 'ic lg')}</div><div class="result-head">${esc(head)}</div><div class="result-sub">${esc(st.reason)} · ${st.result}</div>
       <div class="result-meta">${esc(names.w)} vs ${esc(names.b)} · ${Math.ceil(g.ply / 2)} moves</div>`,
     actions: [{ label: 'Rematch', value: 'again', primary: true }, { label: 'Analyze', value: 'an' }, { label: 'Copy PGN', value: 'pgn' }, { label: 'New game', value: 'new' }, { label: 'Close', value: null }],
   }).then(async (v) => {
@@ -444,7 +447,8 @@ function startNewGame(opts = {}) {
   S.mainOrient = board.orientation;
   engine.newGame();
   refresh();
-  if (!checkEnd()) maybeAI();
+  if (opts.game) { g._recorded = true; if (g.status().over) { clock.stop(); S.overShown = true; } else maybeAI(); }
+  else if (!checkEnd()) maybeAI();
   return true;
 }
 function hideBanner() { if (S.engineState !== 'failed') $('#banner').hidden = true; }
@@ -476,6 +480,7 @@ function doRedo() {
 function afterTimeTravel() {
   const g = S.game;
   S.view = null; S.selected = null; S.targets = []; S.overShown = g.status().over; S.hintSq = null;
+  if (!g.status().over) g._recorded = false;
   if (clock.enabled) { const s = g.clockBefore(); if (s) clock.restore(s); }
   resumeClock();
   engine.newGame(); // reset engine state for the rewound position
@@ -714,7 +719,7 @@ function updatePzButtons() {
   $('#pz-next').disabled = !pz || pz.cat === 'custom' && pzList().length < 2;
 }
 
-function pzSolved(text = 'Correct! Puzzle solved. 🎉') {
+function pzSolved(text = 'Correct! Puzzle solved.') {
   S.pz.state = 'solved';
   setFeedback(text, 'good');
   updatePzButtons();
@@ -832,22 +837,48 @@ function loadFen() {
   if (startNewGame({ fen })) { ioMsg('Position loaded. Good luck!', 'ok'); toast('Position loaded'); go('game'); }
 }
 
-function importPgn() {
-  const text = $('#io-pgn').value.trim();
-  if (!text) { ioMsg('Paste a PGN first.', 'err'); return; }
+function loadPgnText(text) {
   let g;
-  try { g = new Game(); g.loadPgn(text); } catch (e) { ioMsg('Invalid PGN – could not read the game. Check the move text and headers.', 'err'); return; }
+  try { g = new Game(); g.loadPgn(text); } catch (e) { return { error: 'Invalid PGN - could not read the game. Check the move text and headers.' }; }
   const h = g.chess.getHeaders();
   S.mode = 'pvp';
   $('input[name="mode"][value="pvp"]').checked = true;
   syncSetup();
-  if (startNewGame({ game: g, keepSetup: true, noClock: true })) {
-    S.game.headers = { ...S.game.headers, White: h.White || 'White', Black: h.Black || 'Black' };
-    goTo(0);
-    ioMsg(`Imported ${g.ply} moves.`, 'ok');
-    toast(`Imported ${g.ply} moves. Use the arrows to replay.`);
-    go('game');
-  }
+  if (!startNewGame({ game: g, keepSetup: true, noClock: true })) return { error: 'That game could not be loaded.' };
+  S.game.headers = { ...S.game.headers, White: h.White || 'White', Black: h.Black || 'Black' };
+  S.view = null; // live view at the last position of the imported game
+  refresh();
+  return { plies: g.ply };
+}
+
+function importPgn() {
+  const text = $('#io-pgn').value.trim();
+  if (!text) { ioMsg('Paste a PGN first.', 'err'); return; }
+  const r = loadPgnText(text);
+  if (r.error) { ioMsg(r.error, 'err'); return; }
+  ioMsg(`Imported ${r.plies} moves.`, 'ok');
+  toast(`Imported ${r.plies} moves.`);
+  go('game');
+}
+
+/* ----------------------------------------------------------- recent games */
+function recordGame(g) {
+  if (g._recorded || !g.ply) return;
+  g._recorded = true;
+  const st = g.status();
+  const names = playerNames();
+  let result = st.result;
+  if (S.mode === 'ai') result = st.winner ? (st.winner === S.human ? 'Won' : 'Lost') : 'Draw';
+  const list = store('recent') || [];
+  list.unshift({ t: Date.now(), opp: S.mode === 'ai' ? names[other(S.human)] : S.mode === 'aivai' ? 'AI vs AI' : 'Local game', res: result, pgn: g.pgn(pgnExtra()) });
+  store('recent', list.slice(0, 8));
+}
+
+function renderRecent() {
+  const list = store('recent') || [];
+  $('#recent-empty').hidden = list.length > 0;
+  $('#recent-games').hidden = !list.length;
+  $('#recent-body').innerHTML = list.map((r, i) => `<tr><td>${esc(new Date(r.t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</td><td><button class="linkbtn" data-recent="${i}">${esc(r.opp)}</button></td><td>${esc(r.res)}</td></tr>`).join('');
 }
 
 function exportPgn() { const p = S.game.pgn(pgnExtra()); $('#io-pgn').value = p; return p; }
@@ -890,6 +921,7 @@ function onSettingChange(k) {
 }
 
 function renderHome() {
+  renderRecent();
   const g = S.game;
   const resume = $('#home-resume');
   const live = g.ply > 0 && !g.status().over;
@@ -930,6 +962,13 @@ function wire() {
   });
   $('#home-new').addEventListener('click', () => go('new'));
   $('#home-resume').addEventListener('click', () => go('game'));
+  $('#recent-body').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-recent]');
+    const item = b && (store('recent') || [])[+b.dataset.recent];
+    if (!item) return;
+    const r = loadPgnText(item.pgn);
+    if (r.error) toast(r.error, 'error'); else go('game');
+  });
   $('#btn-menu').addEventListener('click', openSheet);
   $('#sheet-game').addEventListener('click', (e) => { if (e.target.closest('[data-close], .sheet-list .btn')) closeSheet(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
@@ -997,6 +1036,7 @@ function wire() {
 }
 
 function boot() {
+  hydrateIcons();
   applySettings();
   $('#sel-level').value = settings.aiLevel;
   wire();
