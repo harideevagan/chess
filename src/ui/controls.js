@@ -105,41 +105,46 @@ export function download(name, text, type = 'text/plain') {
 export const BOARD_THEMES = { classic: 'Classic', wood: 'Wood', modern: 'Modern', dark: 'Dark', blue: 'Blue', green: 'Green' };
 export const PIECE_STYLES = { classic: 'Classic', flat: 'Flat', gold: 'Gold & ebony', neon: 'Neon', ink: 'Ink' };
 
-export function openSettings(settings, onChange) {
-  const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${v}</option>`).join('');
+export function renderSettings(root, settings, onChange) {
+  const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}"${String(k) === String(cur) ? ' selected' : ''}>${v}</option>`).join('');
+  const sel = (k, label, obj) => `<label class="field">${label}<select data-k="${k}">${opt(obj, settings[k])}</select></label>`;
   const chk = (k, label) => `<label class="check"><input type="checkbox" data-k="${k}"${settings[k] ? ' checked' : ''}/> ${label}</label>`;
-  const html = `
-    <div class="settings-grid">
-      <label class="field">Theme<select data-k="theme">${opt({ auto: 'Match device', light: 'Light', dark: 'Dark' }, settings.theme)}</select></label>
-      <label class="field">Board colours<select data-k="board">${opt(BOARD_THEMES, settings.board)}</select></label>
-      <label class="field">Piece style<select data-k="pieces">${opt(PIECE_STYLES, settings.pieces)}</select></label>
+  root.innerHTML = `
+    <div class="card set-sec"><h3>Appearance</h3>
+      ${sel('theme', 'Theme', { auto: 'Match device', light: 'Light', dark: 'Dark' })}
     </div>
-    ${chk('legal', 'Show legal moves')}
-    ${chk('coords', 'Show board coordinates')}
-    ${chk('anim', 'Animate piece movement')}
-    ${chk('autoQueen', 'Always promote to a queen')}
-    ${chk('evalBar', 'Show evaluation bar')}
-    ${chk('autoFlip', 'Flip board every move (Player vs Player)')}`;
-  return modal({
-    title: 'Settings', html, actions: [{ label: 'Done', value: true, primary: true }],
-    onOpen: (d) => {
-      $$('[data-k]', d).forEach((el) => el.addEventListener('change', () => {
-        settings[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
-        onChange(el.dataset.k);
-      }));
-    },
-  });
+    <div class="card set-sec"><h3>Board</h3>
+      <div class="row2">${sel('board', 'Board colours', BOARD_THEMES)}${sel('pieces', 'Piece style', PIECE_STYLES)}</div>
+      ${chk('legal', 'Show legal moves')}
+      ${chk('coords', 'Show board coordinates')}
+      ${chk('anim', 'Animate piece movement')}
+    </div>
+    <div class="card set-sec"><h3>Gameplay</h3>
+      ${chk('autoQueen', 'Always promote to a queen')}
+      ${chk('autoFlip', 'Flip board every move (Player vs Player)')}
+    </div>
+    <div class="card set-sec"><h3>AI</h3>
+      <div class="row2">
+        ${sel('aiLevel', 'Difficulty', AI_LEVELS)}
+        ${sel('aiTime', 'Thinking time', AI_TIMES)}
+      </div>
+      ${sel('aiDepth', 'Search depth', AI_DEPTHS)}
+      ${chk('evalBar', 'Show evaluation')}
+    </div>
+    <div class="card set-sec"><h3>About</h3>
+      <p>Rookery Chess, built by Harideevagan M (Hari Deevagan).</p>
+      <div class="btn-row">
+        <a class="btn" href="https://harideevagan.netlify.app" target="_blank" rel="noopener">Portfolio</a>
+        <a class="btn" href="https://www.linkedin.com/in/harideevagan-m" target="_blank" rel="noopener">LinkedIn</a>
+        <a class="btn" href="/NOTICE.txt" target="_blank" rel="noopener">Licenses</a>
+      </div>
+    </div>`;
+  $$('[data-k]', root).forEach((el) => el.addEventListener('change', () => {
+    settings[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.value;
+    onChange(el.dataset.k);
+  }));
 }
 
-export function openAbout() {
-  return modal({
-    title: 'About Rookery Chess',
-    html: `<p>Rookery Chess is a free chess game that runs entirely in your browser. No positions are sent to any server.</p>
-    <ul class="about-list">
-      <li><strong>Engine:</strong> Stockfish.js 19 (lite, single-threaded WebAssembly), © 2026 Chess.com, LLC, based on Stockfish © T. Romstad, M. Costalba, J. Kiiski, G. Linscott and other contributors. Neural network by Chris Bao (sscg13). Licensed under the <strong>GNU GPL v3</strong>. Source: <a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">github.com/nmrugg/stockfish.js</a> and <a href="https://github.com/official-stockfish/Stockfish" target="_blank" rel="noopener">github.com/official-stockfish/Stockfish</a>.</li>
-      <li><strong>Rules:</strong> chess.js (BSD-2-Clause) © Jeff Hlywa.</li>
-      <li><strong>This application</strong> is distributed under the GPL v3 or later. Its complete source code is provided with this site's repository.</li>
-    </ul>
-    <p><a href="NOTICE.txt" target="_blank" rel="noopener">NOTICE</a> · <a href="LICENSE.txt" target="_blank" rel="noopener">Full GPL v3 text</a></p>`,
-  });
-}
+const AI_LEVELS = { beginner: 'Beginner', easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert' };
+const AI_TIMES = { auto: 'Automatic', 250: '0.25 s', 500: '0.5 s', 1000: '1 s', 2000: '2 s', 5000: '5 s' };
+const AI_DEPTHS = { auto: 'Automatic', 6: '6', 10: '10', 14: '14', 18: '18', 22: '22' };

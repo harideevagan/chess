@@ -6,7 +6,7 @@ import { pieceSVG } from './chess/pieces.js';
 import { PUZZLES } from './chess/puzzles-data.js';
 import { Clock, fmtTime } from './ui/clock.js';
 import { EvalBar, EvalGraph, formatScore, toWhite, graphValue } from './ui/evaluation.js';
-import { $, $$, store, toast, modal, promotionChoice, copyText, download, openSettings, openAbout, esc } from './ui/controls.js';
+import { $, $$, store, toast, modal, promotionChoice, copyText, download, renderSettings, esc } from './ui/controls.js';
 
 /* ------------------------------------------------------------------ config */
 const LEVELS = {
@@ -22,7 +22,7 @@ const PIECE_VAL = { p: 1, n: 3, b: 3, r: 5, q: 9 };
 const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
 
 const settings = Object.assign(
-  { theme: 'auto', board: 'classic', pieces: 'classic', legal: true, coords: true, anim: true, autoQueen: false, evalBar: true, autoFlip: false },
+  { theme: 'auto', board: 'classic', pieces: 'classic', legal: true, coords: true, anim: true, autoQueen: false, evalBar: true, autoFlip: false, aiLevel: 'medium', aiTime: 'auto', aiDepth: 'auto' },
   store('settings') || {},
 );
 
@@ -30,7 +30,7 @@ const settings = Object.assign(
 const S = {
   mode: 'ai', human: 'w', level: 'medium', tc: null, name: 'Player',
   game: new Game(), view: null, selected: null, targets: [], thinking: false, gen: 0,
-  evals: [], paused: false, tab: 'play', pz: null, hintSq: null, engLine: 'Engine: –',
+  evals: [], paused: false, tab: 'play', pz: null, hintSq: null, engLine: 'AI: –',
   engineState: 'loading', overShown: false, mainOrient: 'w', lastFenShown: '', analysisTimer: 0,
 };
 const engine = new Engine();
@@ -72,7 +72,7 @@ function interactive() {
   return false;
 }
 
-function aiName(level = S.level) { return `Stockfish 19 (${LEVELS[level].label})`; }
+function aiName(level = S.level) { return `Rookery AI (${LEVELS[level].label})`; }
 function playerNames() {
   if (S.mode === 'ai') return S.human === 'w' ? { w: S.name, b: aiName() } : { w: aiName(), b: S.name };
   if (S.mode === 'aivai') return { w: aiName(), b: aiName() };
@@ -208,7 +208,7 @@ function renderStatus(g, fen, ply) {
   else if (st.over && S.view === null) html = `🏁 ${esc(resultText(st))}`;
   else if (S.view !== null) html = `👁 Viewing move ${ply} of ${g.ply} – press ⏭ to return`;
   else if (S.thinking) html = '<span class="spinner"></span> AI is thinking…';
-  else if (S.mode !== 'pvp' && S.engineState === 'loading' && (S.mode === 'aivai' || turn !== S.human)) html = '<span class="spinner"></span> Loading engine…';
+  else if (S.mode !== 'pvp' && S.engineState === 'loading' && (S.mode === 'aivai' || turn !== S.human)) html = '<span class="spinner"></span> Loading AI…';
   else if (S.paused) html = '⏸ Paused';
   else html = `<span class="dot ${turn}"></span> ${colorName(turn)} to move${chk ? ' – check!' : ''}`;
   el.innerHTML = html;
@@ -301,14 +301,20 @@ function showResult(st) {
   if (S.mode === 'ai' && st.winner) { head = st.winner === S.human ? 'You won!' : 'You lost'; icon = st.winner === S.human ? '🏆' : '🤖'; }
   else if (st.winner) { head = `${colorName(st.winner)} wins`; icon = '🏆'; }
   else { head = 'Draw'; icon = '🤝'; }
+  const g = S.game;
+  const names = playerNames();
   modal({
     title: 'Game over',
-    html: `<div class="result-big" aria-hidden="true">${icon}</div><div class="result-big" style="font-size:1.7rem">${esc(head)}</div><div class="result-sub">${esc(st.reason)} · ${st.result}</div>`,
-    actions: [{ label: 'Analyze', value: 'an' }, { label: 'Copy PGN', value: 'pgn' }, { label: 'New game', value: 'new', primary: true }, { label: 'Close', value: null }],
+    className: 'result-modal',
+    html: `<div class="result-big" aria-hidden="true">${icon}</div><div class="result-big result-head">${esc(head)}</div><div class="result-sub">${esc(st.reason)} · ${st.result}</div>
+      <div class="result-meta">${esc(names.w)} vs ${esc(names.b)} · ${Math.ceil(g.ply / 2)} moves</div>`,
+    actions: [{ label: 'Rematch', value: 'again', primary: true }, { label: 'Analyze', value: 'an' }, { label: 'Copy PGN', value: 'pgn' }, { label: 'New game', value: 'new' }, { label: 'Close', value: null }],
   }).then(async (v) => {
-    if (v === 'new') startNewGame();
-    else if (v === 'pgn') { await copyText(S.game.pgn(pgnExtra())); toast('PGN copied'); }
-    else if (v === 'an') { setTab('analysis'); analyzeGame(); }
+    if (S.game !== g) return;
+    if (v === 'again') { startNewGame({ keepSetup: true }); go('game'); }
+    else if (v === 'new') go('new');
+    else if (v === 'pgn') { await copyText(g.pgn(pgnExtra())); toast('PGN copied'); }
+    else if (v === 'an') { go('analysis'); analyzeGame(); }
   });
 }
 
@@ -335,9 +341,10 @@ async function maybeAI() {
     if (gen !== S.gen) return;
     S.thinking = true; S.engineState = 'ready'; refresh();
     const cfg = LEVELS[S.level];
-    let ms = cfg.ms;
+    let ms = settings.aiTime !== 'auto' ? +settings.aiTime : cfg.ms;
+    const depth = settings.aiDepth !== 'auto' ? +settings.aiDepth : cfg.depth;
     if (clock.enabled) ms = Math.max(40, Math.min(ms, clock.remaining(side) / 30));
-    const go = `${cfg.depth ? `depth ${cfg.depth} ` : ''}movetime ${Math.round(ms)}`;
+    const go = `${depth ? `depth ${depth} ` : ''}movetime ${Math.round(ms)}`;
     const fen = g.fen;
     const ply = g.ply;
     const res = await engine.search({
@@ -367,14 +374,14 @@ async function handleEngineError(err, retry) {
   console.error('Engine error', err); // technical details stay in the console only
   if (err && err.code === 'timeout' && restarts < 2) {
     restarts++;
-    toast('The engine stopped responding – restarting it…');
+    toast('The AI stopped responding – restarting it…');
     try { await engine.restart(); setEngineChip('ok'); retry && retry(); return; } catch (e) { /* fall through */ }
   }
   S.engineState = 'failed';
   setEngineChip('err');
   showBanner(err && err.code === 'unsupported'
-    ? 'Your browser does not support WebAssembly Web Workers, so the AI is unavailable. You can still play Player vs Player.'
-    : 'The chess engine could not be started. Player vs Player, puzzles without engine help and FEN/PGN tools still work. Try reloading the page.');
+    ? 'Your browser does not support what the AI needs, so the AI is unavailable. You can still play Player vs Player.'
+    : 'The AI could not be started. Player vs Player, puzzles and the FEN/PGN tools still work. Try reloading the page.');
   if (S.mode !== 'pvp') { S.mode = 'pvp'; refresh(); }
   refresh();
 }
@@ -384,7 +391,7 @@ function showBanner(t) { const b = $('#banner'); b.textContent = t; b.hidden = f
 function setEngineChip(state) {
   const c = $('#engine-chip');
   c.className = 'chip ' + (state === 'ok' ? 'ok' : state === 'err' ? 'err' : '');
-  c.textContent = state === 'ok' ? 'Engine: Stockfish 19 ✓' : state === 'err' ? 'Engine: unavailable' : 'Engine: loading…';
+  c.textContent = state === 'ok' ? 'AI ready' : state === 'err' ? 'AI unavailable' : 'AI loading…';
 }
 
 function showEngineInfo(i, turn, ply) {
@@ -394,7 +401,7 @@ function showEngineInfo(i, turn, ply) {
     if (viewPly() === ply || (S.view === null && cur().ply === ply)) evalBar.set(sc);
   }
   const nps = i.nps ? ` · ${(i.nps / 1000).toFixed(0)}k nps` : '';
-  S.engLine = `Engine: depth ${i.depth} · ${formatScore(sc)}${nps}`;
+  S.engLine = `AI: depth ${i.depth} · ${formatScore(sc)}${nps}`;
   $('#engine-line').textContent = S.engLine;
 }
 
@@ -420,7 +427,7 @@ function startNewGame(opts = {}) {
   if (S.mode !== 'pvp' && S.engineState === 'failed') { S.mode = 'pvp'; toast('AI unavailable – switched to Player vs Player.'); }
   try { S.game = opts.game || new Game(opts.fen); } catch (e) { toast('That position could not be loaded.', 'error'); return false; }
   S.view = null; S.selected = null; S.targets = []; S.evals = []; S.paused = false; S.overShown = false;
-  S.engLine = 'Engine: –';
+  S.engLine = 'AI: –';
   S.pz = null; S.hintSq = null;
   if (S.tab === 'puzzles') setTab('play', true);
   const g = S.game;
@@ -583,13 +590,13 @@ function renderAnalysis() {
     html += `<div class="an-line"><span class="sc">${formatScore(toWhite(l, turn))}</span> ${esc(pvToSan(A.fen, l.pv || []))}</div>`;
   }
   out.innerHTML = html;
-  S.engLine = `Engine: depth ${l1.depth} · ${formatScore(sc)}`;
+  S.engLine = `AI: depth ${l1.depth} · ${formatScore(sc)}`;
   $('#engine-line').textContent = S.engLine;
 }
 
 async function runAnalysis() {
   if (S.thinking) { toast('Wait for the AI to finish its move.'); return; }
-  if (S.engineState === 'failed') { toast('The engine is not available.', 'error'); return; }
+  if (S.engineState === 'failed') { toast('The AI is not available.', 'error'); return; }
   const g = cur();
   const ply = viewPly();
   const fen = g.fenAt(ply);
@@ -634,7 +641,7 @@ function scheduleLiveAnalysis() {
 
 async function analyzeGame() {
   if (S.thinking) { toast('Wait for the AI to finish its move.'); return; }
-  if (S.engineState === 'failed') { toast('The engine is not available.', 'error'); return; }
+  if (S.engineState === 'failed') { toast('The AI is not available.', 'error'); return; }
   const g = S.game;
   const id = ++A.seq;
   A.busyGame = true; setAnalysisUI(false);
@@ -822,7 +829,7 @@ function loadFen() {
   const v = validateFen(fen);
   if (!v.ok) { ioMsg('Invalid FEN: ' + v.error, 'err'); return; }
   try { new Chess(fen); } catch (e) { ioMsg('That FEN is not a valid chess position.', 'err'); return; }
-  if (startNewGame({ fen })) ioMsg('Position loaded. Good luck!', 'ok');
+  if (startNewGame({ fen })) { ioMsg('Position loaded. Good luck!', 'ok'); toast('Position loaded'); go('game'); }
 }
 
 function importPgn() {
@@ -837,7 +844,9 @@ function importPgn() {
   if (startNewGame({ game: g, keepSetup: true, noClock: true })) {
     S.game.headers = { ...S.game.headers, White: h.White || 'White', Black: h.Black || 'Black' };
     goTo(0);
-    ioMsg(`Imported ${g.ply} moves. Use the arrows to replay, or keep playing from the end.`, 'ok');
+    ioMsg(`Imported ${g.ply} moves.`, 'ok');
+    toast(`Imported ${g.ply} moves. Use the arrows to replay.`);
+    go('game');
   }
 }
 
@@ -848,14 +857,55 @@ function setTab(name, silent) {
   if (name === 'puzzles' && !S.pz) fillPzPick();
   const was = S.tab;
   S.tab = name;
-  $$('[role="tab"]').forEach((t) => { const on = t.id === 'tab-' + name; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; });
-  $$('[role="tabpanel"]').forEach((p) => { p.hidden = p.id !== 'panel-' + name; });
   if (was === 'puzzles' && name !== 'puzzles') { board.setOrientation(S.mainOrient); }
   if (name === 'puzzles' && S.pz && was !== 'puzzles') { S.mainOrient = board.orientation; board.setOrientation(S.pz.player); }
   if (was === 'analysis' && name !== 'analysis' && !A.busyGame) stopAnalysis(true);
   S.selected = null; S.targets = [];
   if (!silent) refresh();
 }
+
+/* -------------------------------------------------------------- navigation */
+const VIEW_TAB = { game: 'play', analysis: 'analysis', puzzles: 'puzzles' };
+const NAV_OF = { home: 'home', game: 'game', new: 'game', analysis: 'analysis', puzzles: 'puzzles', more: 'more', settings: 'more', io: 'more', about: 'more' };
+
+function go(view, push = true) {
+  if (!NAV_OF[view]) view = 'home';
+  closeSheet();
+  const tab = VIEW_TAB[view] || 'play';
+  if (tab !== S.tab) setTab(tab, true);
+  document.body.dataset.view = view;
+  $$('[data-v]').forEach((el) => { el.hidden = !el.dataset.v.split(' ').includes(view); });
+  $$('.bottom-nav button').forEach((b) => { if (b.dataset.go === NAV_OF[view]) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  if (view === 'home') renderHome();
+  if (view === 'settings') renderSettings($('#settings-body'), settings, onSettingChange);
+  if (push && history.state?.v !== view) history.pushState({ v: view }, '');
+  refresh();
+  window.scrollTo(0, 0);
+}
+
+function onSettingChange(k) {
+  applySettings();
+  if (k === 'aiLevel') $('#sel-level').value = settings.aiLevel;
+  if (k === 'legal' || k === 'coords') refresh();
+}
+
+function renderHome() {
+  const g = S.game;
+  const resume = $('#home-resume');
+  const live = g.ply > 0 && !g.status().over;
+  resume.hidden = !live;
+  if (live) {
+    const n = playerNames();
+    $('#home-resume-sub').textContent = `${n.w} vs ${n.b} · ${g.ply} ${g.ply === 1 ? 'move' : 'moves'} · ${colorName(g.turn)} to move`;
+  }
+}
+
+function openSheet() {
+  const w = $('#sheet-game');
+  w.hidden = false;
+  $('.sheet .btn:not(:disabled)', w)?.focus();
+}
+function closeSheet() { $('#sheet-game').hidden = true; }
 
 function syncSetup() {
   const mode = $('input[name="mode"]:checked').value;
@@ -871,17 +921,29 @@ function wire() {
     settings.theme = dark ? 'light' : 'dark';
     applySettings();
   });
-  $('#btn-settings').addEventListener('click', () => openSettings(settings, (k) => { applySettings(); if (k === 'legal' || k === 'coords') refresh(); }));
-  $('#link-about').addEventListener('click', (e) => { e.preventDefault(); openAbout(); });
+  $$('[data-go]').forEach((b) => b.addEventListener('click', () => go(b.dataset.go)));
+  $('#brand-home').addEventListener('click', () => go('home'));
+  window.addEventListener('popstate', (e) => go(e.state?.v || 'home', false));
+  $('#home-quick').addEventListener('click', () => {
+    $('input[name="mode"][value="ai"]').checked = true; syncSetup();
+    startNewGame(); go('game');
+  });
+  $('#home-new').addEventListener('click', () => go('new'));
+  $('#home-resume').addEventListener('click', () => go('game'));
+  $('#btn-menu').addEventListener('click', openSheet);
+  $('#sheet-game').addEventListener('click', (e) => { if (e.target.closest('[data-close], .sheet-list .btn')) closeSheet(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+  $('#btn-sheet-io').addEventListener('click', () => go('io'));
+  $('#btn-sheet-settings').addEventListener('click', () => go('settings'));
   $('#btn-flip').addEventListener('click', () => { board.flip(); if (!puzzleActive()) S.mainOrient = board.orientation; refresh(); });
   $('#nav-first').addEventListener('click', () => goTo(0));
   $('#nav-prev').addEventListener('click', () => goTo(viewPly() - 1));
   $('#nav-next').addEventListener('click', () => goTo(viewPly() + 1));
   $('#nav-last').addEventListener('click', () => goTo(S.game.ply));
   $('#moves').addEventListener('click', (e) => { const b = e.target.closest('.mv'); if (b) goTo(+b.dataset.ply); });
-  $('#btn-new').addEventListener('click', () => { setTab('play'); $('#btn-start').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
-  $('#btn-start').addEventListener('click', () => startNewGame());
-  $('#btn-restart').addEventListener('click', doRestart);
+  $('#btn-new').addEventListener('click', () => go('new'));
+  $('#btn-start').addEventListener('click', () => { startNewGame(); go('game'); });
+  $('#btn-restart').addEventListener('click', () => { doRestart(); go('game'); });
   $('#btn-undo').addEventListener('click', doUndo);
   $('#btn-redo').addEventListener('click', doRedo);
   $('#btn-resign').addEventListener('click', doResign);
@@ -892,15 +954,6 @@ function wire() {
     refresh();
   });
   $$('input[name="mode"], #sel-tc').forEach((el) => el.addEventListener('change', syncSetup));
-  $$('[role="tab"]').forEach((t, i, all) => {
-    t.addEventListener('click', () => setTab(t.id.replace('tab-', '')));
-    t.addEventListener('keydown', (e) => {
-      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (!d) return;
-      const n = all[(i + d + all.length) % all.length];
-      n.focus(); n.click();
-    });
-  });
   // analysis
   $('#an-depth').addEventListener('change', () => { $('#an-custom').hidden = $('#an-depth').value !== 'custom'; });
   $('#an-start').addEventListener('click', runAnalysis);
@@ -928,7 +981,8 @@ function wire() {
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
-    if (t.closest && (t.closest('input, textarea, select, dialog, #board, [role="tab"]'))) return;
+    if (t.closest && (t.closest('input, textarea, select, dialog, #board'))) return;
+    if (!VIEW_TAB[document.body.dataset.view]) return;
     if (e.key === 'ArrowLeft') { goTo(viewPly() - 1); e.preventDefault(); }
     else if (e.key === 'ArrowRight') { goTo(viewPly() + 1); e.preventDefault(); }
     else if (e.key === 'Home') { goTo(0); e.preventDefault(); }
@@ -944,12 +998,15 @@ function wire() {
 
 function boot() {
   applySettings();
+  $('#sel-level').value = settings.aiLevel;
   wire();
   syncSetup();
   fillPzPick();
   const sup = typeof Worker !== 'undefined' && typeof WebAssembly === 'object';
-  if (!sup) { S.engineState = 'failed'; setEngineChip('err'); showBanner('Your browser does not support WebAssembly Web Workers, so the AI is unavailable. Player vs Player still works.'); $('input[name="mode"][value="pvp"]').checked = true; S.mode = 'pvp'; syncSetup(); }
+  if (!sup) { S.engineState = 'failed'; setEngineChip('err'); showBanner('Your browser does not support what the AI needs, so the AI is unavailable. Player vs Player still works.'); $('input[name="mode"][value="pvp"]').checked = true; S.mode = 'pvp'; syncSetup(); }
   startNewGame();
+  history.replaceState({ v: 'home' }, '');
+  go('home', false);
   if (sup) {
     engine.init().then(() => { S.engineState = 'ready'; setEngineChip('ok'); refresh(); })
       .catch((err) => handleEngineError(err));
