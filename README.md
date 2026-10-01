@@ -1,5 +1,7 @@
 # Rookery Chess
 
+Built by Harideevagan M.
+
 A complete browser chess game with **Stockfish 19** (WASM, Web Worker). Static site, no backend.
 Vite + vanilla JS + chess.js.
 

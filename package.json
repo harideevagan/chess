@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Browser chess game with Stockfish 19 (WASM, Web Worker)",
+  "description": "Rookery Chess - browser chess game with a built-in AI. Built by Harideevagan M.",
   "license": "GPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
