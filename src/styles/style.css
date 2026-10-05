@@ -298,3 +298,13 @@ body[data-puzzle="on"] .clock { display: none; }
   .moves { max-height: 280px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: 0s !important; transition-duration: 0s !important; } }
+
+/* SEO content (crawlable text on the home screen) */
+.seo { margin-top: 32px; padding-top: 8px; border-top: 1px solid var(--border); }
+.seo h2 { font-size: 1.05rem; margin: 22px 0 8px; }
+.seo p, .seo li { color: var(--muted); line-height: 1.55; }
+.seo ul { padding-left: 20px; margin: 8px 0; }
+.seo details { border-bottom: 1px solid var(--border); padding: 8px 0; }
+.seo summary { cursor: pointer; font-weight: 500; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+noscript .banner { display: block; }

@@ -1,0 +1,25 @@
+# Rookery Chess
+
+> Rookery Chess is a free chess game that runs in the browser, built by Hari Deevagan (Harideevagan) in Chennai, India. Play chess vs computer, or two players on one device. No account needed.
+
+Site: https://chess-harideevagan.netlify.app/
+Author: Hari Deevagan - https://harideevagan.netlify.app/
+
+## Features
+- Player vs computer at five levels: Beginner, Easy, Medium, Hard, Expert
+- Two-player mode on the same device (local multiplayer; there is no online matchmaking)
+- Computer vs computer mode
+- Chess clocks: bullet, blitz, rapid and custom time controls
+- Puzzles: mate in 1, 2, 3, best move and tactical puzzles
+- Analysis with evaluation bar and engine lines
+- FEN and PGN import/export
+- Light and dark themes, works on mobile and desktop
+- Free to use, no sign-up
+
+## Other guides by Hari Deevagan
+- JavaScript: https://js-harideevagan.netlify.app/
+- Python: https://python-harideevagan.netlify.app/
+- HTML & CSS: https://html-css-harideevagan.netlify.app/
+- PostgreSQL & SQL: https://psql-sql-harideevagan.netlify.app/
+- AI: https://ai-harideevagan.netlify.app/
+- Odoo: https://odoo-harideevagan.netlify.app/
